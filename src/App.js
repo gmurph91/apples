@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
 import {BrowserRouter as Router, Route, Switch, Link} from 'react-router-dom';
 import './App.css';
-// import Pusher from 'pusher-js';
-const axios = require('axios');
+import openSocket from 'socket.io-client';
+import Card from './components/card';
+const socket = openSocket('https://gregapis.herokuapp.com');
+const axios = require('axios')
 require('dotenv').config()
+
 
 export default class App extends Component {
   constructor(props) {
@@ -26,6 +29,14 @@ export default class App extends Component {
     window.addEventListener('scroll', this.handleScroll);
     this.handleResize()
     this.getCards()
+    socket.on('green card',(card) =>{
+      this.setState({
+        currentGreen: card
+      })
+    })
+    socket.on('red card',(card) =>{
+      console.log(card)
+    })
   }
 
   componentDidUpdate(){
@@ -106,13 +117,16 @@ export default class App extends Component {
         reds.splice(index, 1);
       }
     }
-    console.log(this.state.currentGreen)
-    console.log(this.state.hand)
+    socket.emit('green card', this.state.currentGreen);
+  }
+
+  sendEvent = (event) => {
+    socket.emit('red card', event.currentTarget.dataset.name);
   }
 
   redMap = () => {
     return this.state.hand.map((card, i) => {
-      return <div className="redCard"><p>{card}</p></div>
+      return <Card card={card} selectHandler={this.sendEvent}/>
     })
   }
 

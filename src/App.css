@@ -14,6 +14,7 @@
     width: 15%;
     background-repeat: no-repeat;
     position: relative;
+    cursor: pointer;
 }
 
 .redCard:first-of-type {
@@ -31,10 +32,12 @@
     position: absolute;
     top: -5px;
     font-weight: bold;
-    left: 14%;
+    left: 13.5%;
     transform-origin: 0 0;
     transform: rotate(90deg);
     z-index: 2;
+    font-family: 'Roboto Condensed', sans-serif;
+
 }
 
 .greenCard {
@@ -56,8 +59,9 @@
     position: absolute;
     top: -5px;
     font-weight: bold;
-    left: 14%;
+    left: 13.5%;
     transform-origin: 0 0;
     transform: rotate(90deg);
     z-index: 2;
+    font-family: 'Roboto Condensed', sans-serif;
 }
