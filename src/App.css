@@ -1,38 +1,63 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.redRow {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  flex-flow: wrap;
+  margin-top: 10px;
 }
 
-.App-link {
-  color: #61dafb;
+.redCard {
+  padding: 24.5% 2% 2% 2%;
+    box-shadow: 0px 0px 12px 0px gray;
+    border-radius: 13px;
+    margin: 5px 5px 5px -15.8%;
+    background: url(/red.png);
+    background-size: cover;
+    width: 15%;
+    background-repeat: no-repeat;
+    position: relative;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.redCard:first-of-type {
+  margin-left: auto;
+}
+
+.redCard:last-of-type {
+  margin-right: auto;
+}
+
+.redCard p {
+  font-size: 1.6vw;
+  width: 134%;
+    text-transform: uppercase;
+    position: absolute;
+    top: -5px;
+    font-weight: bold;
+    left: 14%;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+    z-index: 2;
+}
+
+.greenCard {
+  padding: 24.5% 2% 2% 2%;
+  box-shadow: 0px 0px 12px 0px gray;
+  border-radius: 13px;
+    margin: auto;
+    background: url(/green.png);
+    background-size: cover;
+    width: 15%;
+    background-repeat: no-repeat;
+    position: relative;
+}
+
+.greenCard p {
+  font-size: 1.6vw;
+  width: 134%;
+    text-transform: uppercase;
+    position: absolute;
+    top: -5px;
+    font-weight: bold;
+    left: 14%;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+    z-index: 2;
 }
