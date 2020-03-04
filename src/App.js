@@ -11,6 +11,8 @@ export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
+        name: "",
+        joinCode: "",
         green: [],
         red: [],
         greens: [],
@@ -21,6 +23,7 @@ export default class App extends Component {
         judging: false,
         entries: [],
         players: [],
+        welcome: true,
     };
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
   }
@@ -31,23 +34,37 @@ export default class App extends Component {
     window.addEventListener('resize', this.updateWindowDimensions);
     window.addEventListener('scroll', this.handleScroll);
     this.handleResize()
-    this.getCards()
-    socket.on('green card',(card) =>{
-      this.setState({
-        currentGreen: card
-      })
+    this.welcome()
+    let room = this.state.joinCode
+    socket.on('connect', function() {
+      // Connected, let's sign-up for to receive messages for this room
+      socket.emit('room', room);
+   });
+    socket.on('join game',(user) =>{
+      console.log(user.name + " joined game " + user.room)
     })
+    socket.on('remove reds',(cards) =>{
+      console.log(cards.hand)
+    })
+    // socket.on('green card',(card) =>{
+    //   console.log(card)
+    //   // this.setState({
+    //   //   currentGreen: card
+    //   // })
+    // })
     socket.on('red card',(card) =>{
-      this.setState({ entries: [...this.state.entries, card] });
-      console.log(this.state.entries)
-      try{
-      if(this.state.entries.length > 4){this.setState({judging:true})}
-      } catch(e) {console.log(e)}
+      console.log(card.card)
+      // this.setState({ entries: [...this.state.entries, card] });
+      // console.log(this.state.entries)
+      // try{
+      // if(this.state.entries.length > 4){this.setState({judging:true})}
+      // } catch(e) {console.log(e)}
     })
   }
 
   componentDidUpdate(){
    this.handleResize()
+   this.loading()
   }
 
   componentWillUnmount() {
@@ -76,6 +93,34 @@ export default class App extends Component {
       app.classList.add("large");
       app.classList.remove("mobile");
       app.classList.remove("small");
+    }
+  }
+
+  loading = () => {
+    var element = document.getElementById("loadingIcon")
+    if (this.state.loading) {
+      element.classList.remove("hide")
+      document.getElementById("header").classList.add("hide")
+      document.getElementById("board").classList.add("hide")
+      document.getElementById("infobox").classList.add("hide")
+    } else {
+      element.classList.add("hide")
+      document.getElementById("header").classList.remove("hide")
+      document.getElementById("board").classList.remove("hide")
+      document.getElementById("infobox").classList.remove("hide")
+    }
+  }
+
+  welcome = () => {
+    if (this.state.welcome === true) {
+      document.getElementById("header").classList.add("hide2")
+      document.getElementById("board").classList.add("hide2")
+      document.getElementById("infobox").classList.add("hide2")
+    } else {
+      document.getElementById("welcome").classList.add("hide2")
+      document.getElementById("header").classList.remove("hide2")
+      document.getElementById("board").classList.remove("hide2")
+      document.getElementById("infobox").classList.remove("hide2")
     }
   }
 
@@ -124,7 +169,38 @@ export default class App extends Component {
         reds.splice(index, 1);
       }
     }
-    socket.emit('green card', this.state.currentGreen);
+    // socket.emit('green card', { room: this.state.joinCode, card: this.state.currentGreen });
+    this.setState({
+      loading: false,
+    })
+    try {
+      const apiCall = await axios.post('https://gregapis.herokuapp.com/apples/newgame', {
+        joinCode: this.state.joinCode,
+        greens: this.state.greens,
+        reds: this.state.reds,
+        currentGreen: this.state.currentGreen,
+        players: [this.state.name],
+      })
+      await apiCall
+    } catch (err) {
+      console.log(err)
+  }
+  }
+
+  getHand = async () => {
+    let reds = this.state.reds
+    for (let step = 0; step < 7; step++) {
+      let find = reds[Math.floor(Math.random() * reds.length)]
+      this.setState({ hand: [...this.state.hand, find]});
+      const index = reds.indexOf(find);
+      if (index > -1) {
+        reds.splice(index, 1);
+      }
+    }
+    socket.emit('remove reds', { room: this.state.joinCode, hand: this.state.hand });
+    this.setState({
+      loading: false,
+    })
   }
 
   sendEvent = (event) => {
@@ -135,7 +211,7 @@ export default class App extends Component {
       // if (index > -1) {
       //   hand.splice(index, 1);
       // }
-    socket.emit('red card', event.currentTarget.id);
+      socket.emit('red card', { room: this.state.joinCode, card: event.currentTarget.id });
     this.getOneCard()
     } catch (e) {console.log(e)}
   }
@@ -145,7 +221,6 @@ export default class App extends Component {
   }
 
   getOneCard = () => {
-    console.log(this.state)
       let reds = this.state.reds
       let find = reds[Math.floor(Math.random() * reds.length)]
       this.setState({ hand: [...this.state.hand, find]});
@@ -183,19 +258,88 @@ export default class App extends Component {
     }
   }
 
+  newGame = async () => {
+    let name = this.state.name
+    let joinCode = this.state.joinCode
+    if(name === "" || joinCode === ""){
+      alert("Please fill out all fields")
+    } else {
+    this.getCards()
+    this.setState({
+      welcome: false,
+      loading: true,
+    })
+    await this.setState({})
+    this.welcome()
+  }}
+
+  joinGame = async () => {
+    let name = this.state.name
+    let joinCode = this.state.joinCode
+    if(name === "" || joinCode === ""){
+      alert("Please fill out all fields")
+    } else {
+    try {
+      const response = await axios.get(`https://gregapis.herokuapp.com/apples/savedgame/${joinCode}`);
+      await response
+      if(response.data !== ""){
+      this.setState({
+        greens: response.data.greens,
+        reds: response.data.reds,
+        currentGreen: response.data.currentGreen,
+        players: response.data.players,
+        welcome: false,
+        loading: true,
+      })
+      await this.setState({})
+      this.welcome()
+      this.getHand()
+      socket.emit('join game', { room: this.state.joinCode, name: this.state.name });
+    }
+      else {alert("Unable to join game.  Check your join code and try again")}
+    } catch (err) {
+      console.log(err)
+    }}
+  }
+
   render() {
     return (
       <div className="App" id="app">
-        <div className="header">
+        <div className="header hide" id="header">
           <h2>Apples to Apples</h2>
         </div>
-              {/* <img id="loadingIcon" src="loading.gif" alt="loading" /> */}
+            <div id="board" className="hide">
               {this.renderBoard()}
-            <div className="information" id="infobox">
+              </div>
+            <div className="information hide" id="infobox">
             <h2>Info</h2>
             <p>Judge: {this.state.judge}</p>
             <p>Scores: </p>
             </div>
+            <div id="welcome">
+          <div>
+            <h1 className="welcomeHeader">Welcome</h1>
+            <form className="welcomeForm">
+            <label htmlFor="username">Name:</label>
+            <input id="username" type="text" value={this.state.name} onChange={(event)=>{
+              this.setState({
+                name: event.target.value
+              })
+            }}/>
+            <label htmlFor="joinCode">Join Code:</label>
+            <input id="joinCode" type="text" value={this.state.joinCode} onChange={(event)=>{
+              this.setState({
+                joinCode: event.target.value
+              })
+            }}/>
+              <div className="buttons">
+              <input type="button" className="welcomeButton" onClick={this.newGame} value="New" id="New"/>
+              <input type="button" className="welcomeButton" onClick={this.joinGame} value="Join" id="Join"/>
+              </div>
+            </form>
+            </div>
+        </div>
+        <img id="loadingIcon" src="loading.gif" alt="loading" />
         </div>
         
     )}}
