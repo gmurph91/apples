@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import {BrowserRouter as Router, Route, Switch, Link} from 'react-router-dom';
 import './App.css';
 import openSocket from 'socket.io-client';
 import Card from './components/card';
@@ -18,6 +17,10 @@ export default class App extends Component {
         reds: [],
         currentGreen: "",
         hand: [],
+        judge: "Greg",
+        judging: false,
+        entries: [],
+        players: [],
     };
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
   }
@@ -35,7 +38,11 @@ export default class App extends Component {
       })
     })
     socket.on('red card',(card) =>{
-      console.log(card)
+      this.setState({ entries: [...this.state.entries, card] });
+      console.log(this.state.entries)
+      try{
+      if(this.state.entries.length > 4){this.setState({judging:true})}
+      } catch(e) {console.log(e)}
     })
   }
 
@@ -108,7 +115,7 @@ export default class App extends Component {
         greens.splice(index, 1);
       }
     }
-    for (let step = 0; step < 8; step++) {
+    for (let step = 0; step < 7; step++) {
       let reds = this.state.reds
       let find = reds[Math.floor(Math.random() * reds.length)]
       this.setState({ hand: [...this.state.hand, find]});
@@ -121,30 +128,75 @@ export default class App extends Component {
   }
 
   sendEvent = (event) => {
-    socket.emit('red card', event.currentTarget.dataset.name);
+    try{
+      document.getElementById(`${event.currentTarget.id}`).remove();
+      // let hand = this.state.hand
+      // const index = hand.indexOf(event.currentTarget.id);
+      // if (index > -1) {
+      //   hand.splice(index, 1);
+      // }
+    socket.emit('red card', event.currentTarget.id);
+    this.getOneCard()
+    } catch (e) {console.log(e)}
+  }
+
+  selectWinner = () => {
+    console.log("Winner!")
+  }
+
+  getOneCard = () => {
+    console.log(this.state)
+      let reds = this.state.reds
+      let find = reds[Math.floor(Math.random() * reds.length)]
+      this.setState({ hand: [...this.state.hand, find]});
+      const index = reds.indexOf(find);
+      if (index > -1) {
+        reds.splice(index, 1);
+      }
   }
 
   redMap = () => {
     return this.state.hand.map((card, i) => {
-      return <Card card={card} selectHandler={this.sendEvent}/>
+      return <Card key={i} card={card} selectHandler={this.sendEvent}/>
     })
+  }
+
+  entryMap = () => {
+    return this.state.entries.map((card, i) => {
+      return <Card key={i} card={card} selectHandler={this.selectWinner}/>
+    })
+  }
+
+  renderBoard = () => {
+    if (this.state.judging === false){
+      return <div><div className="greenRow">
+      <div className="greenCard"><p>{this.state.currentGreen}</p></div>
+      </div>
+      <div className="redRow">{this.redMap()}</div>
+      </div>
+    } else {
+      return <div><div className="greenRow">
+      <div className="greenCard"><p>{this.state.currentGreen}</p></div>
+      </div>
+      <div className="redRow">{this.entryMap()}</div>
+      </div>
+    }
   }
 
   render() {
     return (
-      <Router>
-        <nav><Link to="/test">Link</Link></nav>
-        <Switch>
-          <Route path="/">
-            <div className="App" id="app">
+      <div className="App" id="app">
+        <div className="header">
+          <h2>Apples to Apples</h2>
+        </div>
               {/* <img id="loadingIcon" src="loading.gif" alt="loading" /> */}
-              <div className="greenCard"><p>{this.state.currentGreen}</p></div>
-              <div className="redRow">{this.redMap()}</div>
+              {this.renderBoard()}
+            <div className="information" id="infobox">
+            <h2>Info</h2>
+            <p>Judge: {this.state.judge}</p>
+            <p>Scores: </p>
             </div>
-        </Route>
-        {/* <Route component={Missing}/> */}
-      </Switch>
-      </Router>
-    )
-  }
-}
+        </div>
+        
+    )}}
+  

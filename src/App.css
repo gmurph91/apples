@@ -1,17 +1,38 @@
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  overflow: auto;
+}
+
 .redRow {
   display: flex;
-  flex-flow: wrap;
   margin-top: 10px;
+  max-height: 100px;
+  max-width: 93vh;
+  margin-left: 10%;
+  margin-right: 30%;
+}
+
+.greenRow {
+  display: flex;
+  max-width: 93vh;
+  margin-left: 10%;
+    margin-right: 30%;
+    margin-top: 10px;
 }
 
 .redCard {
-  padding: 24.5% 2% 2% 2%;
-    box-shadow: 0px 0px 12px 0px gray;
+  padding: 45% 2% 2% 2%;
+    box-shadow: 0px 0px 12px 0px grey;
     border-radius: 13px;
-    margin: 5px 5px 5px -15.8%;
+    margin: 5px 5px 5px -27.8%;
     background: url(/red.png);
     background-size: cover;
-    width: 15%;
+    width: 30%;
     background-repeat: no-repeat;
     position: relative;
     cursor: pointer;
@@ -26,13 +47,12 @@
 }
 
 .redCard p {
-  font-size: 1.6vw;
   width: 134%;
     text-transform: uppercase;
     position: absolute;
     top: -5px;
     font-weight: bold;
-    left: 13.5%;
+    left: 13%;
     transform-origin: 0 0;
     transform: rotate(90deg);
     z-index: 2;
@@ -41,27 +61,91 @@
 }
 
 .greenCard {
-  padding: 24.5% 2% 2% 2%;
-  box-shadow: 0px 0px 12px 0px gray;
-  border-radius: 13px;
+  padding: 45% 2% 2% 2%;
+    box-shadow: 0px 0px 12px 0px grey;
+    border-radius: 13px;
     margin: auto;
     background: url(/green.png);
     background-size: cover;
-    width: 15%;
+    width: 30%;
     background-repeat: no-repeat;
     position: relative;
+    max-width: 90vh;
 }
 
 .greenCard p {
-  font-size: 1.6vw;
   width: 134%;
     text-transform: uppercase;
     position: absolute;
     top: -5px;
     font-weight: bold;
-    left: 13.5%;
+    left: 13%;
     transform-origin: 0 0;
     transform: rotate(90deg);
     z-index: 2;
     font-family: 'Roboto Condensed', sans-serif;
+}
+
+.animation {
+  animation: slideIn 1s;
+ }
+ @keyframes slideIn {
+  from {
+    margin-top: 100%;
+    height: 100%;
+  }
+  to {
+    margin-top: 0%;
+    height: 100%;
+  }
+}
+
+.mobile {
+  font-size: 12px;
+}
+
+.small {
+  font-size: 14px;
+}
+
+.larger {
+  font-size: 16px;
+}
+
+.header{
+  height: 53px;
+  width: 100vw;
+  background: #CBBDB0;
+  display: flex;
+  justify-content: space-around;
+}
+
+.header h2 {
+  text-align: center;
+  margin-top: 7px;
+  font-size: 30px;
+}
+
+.information {
+  display: flex;
+  flex-direction: column;
+  width: 24%;
+  height: 87vh;
+  position: fixed;
+  right: 0px;
+  border-radius: 15px;
+  box-shadow: 0 0 30px #eee;
+  margin:5px;
+  padding: 10px;
+  top: 60px;
+}
+
+.information h2 {
+  line-height: 1;
+    padding: 6px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    border-bottom: 2px solid #f5f5f5;
+    border-radius: 15px 15px 0px 0px;
+    text-align:center;
 }
