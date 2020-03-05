@@ -25,6 +25,24 @@ body {
     margin-top: 10px;
 }
 
+.whiteRow {
+  display: flex;
+  margin-top: 10px;
+  max-height: 100px;
+  max-width: 93vh;
+  margin-left: 10%;
+  margin-right: 30%;
+  flex-flow: wrap;
+}
+
+.blackRow {
+  display: flex;
+  max-width: 93vh;
+  margin-left: 10%;
+    margin-right: 30%;
+    margin-top: 10px;
+}
+
 .redCard {
   padding: 45% 2% 2% 2%;
     box-shadow: 0px 0px 12px 0px grey;
@@ -36,6 +54,70 @@ body {
     background-repeat: no-repeat;
     position: relative;
     cursor: pointer;
+}
+
+.whiteCard {
+  padding: 5px;
+  height: 140px;
+    box-shadow: 0px 0px 12px 0px grey;
+    border-radius: 13px;
+    margin: 5px 5px 5px 5px;
+    background-color: white;
+    width: 20%;
+    position: relative;
+    cursor: pointer;
+}
+
+.whiteCard:after {
+  content: "";
+  background-image: url(/Cards-Against-Humanity.png);
+    background-size: 48px 20px;
+    width: 48px;
+    position: absolute;
+    height: 20px;
+    bottom: 8px;
+    left: 5px;
+}
+
+.whiteCard p {
+    position: absolute;
+    top: -5px;
+    font-weight: bold;
+    left: 9px;
+    font-family: 'Roboto Condensed', sans-serif;
+}
+
+.blackCard {
+  padding: 5px;
+  height: 140px;
+    box-shadow: 0px 0px 12px 0px grey;
+    border-radius: 13px;
+    background-color: black;
+    width: 20%;
+    position: relative;
+    cursor: pointer;
+    margin: auto;
+    max-width: 90vh;
+}
+
+.blackCard:after {
+  content: "";
+  background-image: url(/Cards-Against-Humanity-White.png);
+    background-size: 48px 20px;
+    width: 48px;
+    position: absolute;
+    height: 20px;
+    bottom: 8px;
+    left: 5px;
+}
+
+.blackCard p {
+    color: white;
+    position: absolute;
+    top: -5px;
+    font-weight: bold;
+    left: 9px;
+    font-family: 'Roboto Condensed', sans-serif;
 }
 
 .redCard:first-of-type {
@@ -97,6 +179,20 @@ body {
   to {
     margin-top: 0%;
     height: 100%;
+  }
+}
+
+.whiteCard.animation {
+  animation: slideIn2 1s;
+ }
+ @keyframes slideIn2 {
+  from {
+    margin-top: 100%;
+    height: 140px;
+  }
+  to {
+    margin-top: 0%;
+    height: 140px;
   }
 }
 
@@ -224,4 +320,51 @@ body {
 
 .welcomeForm input:focus {
   outline: none;
+}
+
+.sortSelect {
+  width: 100%;
+  margin-top: 10px !important;
+}
+
+.sortSelect__control {
+  background-color: white !important;
+}
+
+
+.sortSelect__menu {
+  background-color: white !important;
+  margin-top: 1px !important;
+}
+
+.sortSelect__menu-list {
+  background-color: white !important;
+  color: black;
+  text-align: left;
+}
+
+/* selected */
+.sortSelect__option {
+  background-color: white !important;
+  color: black !important;
+}
+
+.sortSelect__option:active {
+  background-color: darkgray !important;
+  color: black;
+}
+
+.sortSelect__option:hover {
+  background-color: darkgray !important;
+}
+
+
+.sortSelect__single-value {
+  color: black !important;
+}
+
+.dothis {
+  position: absolute;
+    bottom: 0px;
+    left: 33%;
 }

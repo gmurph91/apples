@@ -2,10 +2,15 @@ import React, { Component } from 'react';
 import './App.css';
 import openSocket from 'socket.io-client';
 import Card from './components/card';
+import Cardtwo from './components/cardtwo';
+import Select from 'react-select'
 const socket = openSocket('https://gregapis.herokuapp.com');
 const axios = require('axios')
 require('dotenv').config()
-
+const options = [
+  { value: 'Apples to Apples', label: `Apples to Apples` },
+  { value: 'Cards Against Humanity', label: `Cards Against Humanity` },
+];
 
 export default class App extends Component {
   constructor(props) {
@@ -18,12 +23,19 @@ export default class App extends Component {
         greens: [],
         reds: [],
         currentGreen: "",
+        black: [],
+        white: [],
+        blacks: [],
+        whites: [],
+        currentBlack: "",
         hand: [],
         judge: "Greg",
         judging: false,
         entries: [],
         players: [],
         welcome: true,
+        selectedOption: { value: "Apples to Apples", label: "Apples to Apples" },
+        selected: "Apples to Apples",
     };
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
   }
@@ -37,14 +49,46 @@ export default class App extends Component {
     this.welcome()
     let room = this.state.joinCode
     socket.on('connect', function() {
-      // Connected, let's sign-up for to receive messages for this room
       socket.emit('room', room);
    });
     socket.on('join game',(user) =>{
-      console.log(user.name + " joined game " + user.room)
+      this.setState({ players: [...this.state.players, user.name] });
+      if(this.state.name === this.state.players[0]){
+      socket.emit('existing players', { room: this.state.joinCode, players: this.state.players });
+    }})
+    socket.on('existing players',(players) =>{
+      this.setState({
+        players: players.players
+      })
+    })
+    socket.on('winner',(winner) =>{
+      console.log(winner.winner + " wins!")
+      this.setState({
+        entries: [],
+        judging: false,
+      })
     })
     socket.on('remove reds',(cards) =>{
-      console.log(cards.hand)
+      if(this.state.selected==="Apples to Apples"){
+        let deck = this.state.reds
+        let hand = cards.hand
+      hand.map((hand, i) => {
+        const index = deck.indexOf(hand);
+        if (index > -1) {
+          deck.splice(index, 1);
+        }
+        return hand
+      })
+      } else if(this.state.selected==="Cards Against Humanity"){
+        let deck = this.state.whites
+        let hand = cards.hand
+        hand.map((hand, i) => {
+          const index = deck.indexOf(hand);
+          if (index > -1) {
+            deck.splice(index, 1);
+          }
+          return hand
+        })}
     })
     // socket.on('green card',(card) =>{
     //   console.log(card)
@@ -53,12 +97,11 @@ export default class App extends Component {
     //   // })
     // })
     socket.on('red card',(card) =>{
-      console.log(card.card)
-      // this.setState({ entries: [...this.state.entries, card] });
-      // console.log(this.state.entries)
-      // try{
-      // if(this.state.entries.length > 4){this.setState({judging:true})}
-      // } catch(e) {console.log(e)}
+      this.setState({ entries: [...this.state.entries, card.card] });
+      if(this.state.entries.length === this.state.players.length-1){
+        console.log("time to judge!")
+        this.setState({judging:true})
+      }
     })
   }
 
@@ -139,6 +182,31 @@ export default class App extends Component {
     this.disperseCards()
   }
 
+  getCards2 = async () => {
+    try {
+      const black = await axios.get(`https://gregapis.herokuapp.com/apples/black`);
+      const white = await axios.get(`https://gregapis.herokuapp.com/apples/white`);
+      this.setState({
+        black: await black.data,
+        white: await white.data,
+      })
+    } catch (err) {
+      console.log(err);
+    }
+    await this.setState({})
+    this.disperseCards2()
+  }
+
+  selector = async selectedOption => {
+    this.setState(
+      { selectedOption },
+    )
+    this.setState({
+      selected: selectedOption.value,
+    })
+    await (this.setState({ selectedOption })) 
+  }
+
   disperseCards = async () => {
     let green = this.state.green
     let red = this.state.red
@@ -179,7 +247,55 @@ export default class App extends Component {
         greens: this.state.greens,
         reds: this.state.reds,
         currentGreen: this.state.currentGreen,
-        players: [this.state.name],
+        selected: this.state.selected
+      })
+      await apiCall
+    } catch (err) {
+      console.log(err)
+  }
+  }
+
+  disperseCards2 = async () => {
+    let black = this.state.black
+    let white = this.state.white
+    black.map((black, i) => {
+      this.setState({ blacks: [...this.state.blacks, black.prompt] });
+      return black
+    })
+    white.map((white, i) => {
+      this.setState({ whites: [...this.state.whites, white.response] });
+      return white
+    })
+    await this.setState({})
+    for (let step = 0; step < 1; step++) {
+      let blacks = this.state.blacks
+      let find = blacks[Math.floor(Math.random() * blacks.length)]
+      this.setState({ currentBlack: find });
+      const index = blacks.indexOf(find);
+      if (index > -1) {
+        blacks.splice(index, 1);
+      }
+    }
+    for (let step = 0; step < 8; step++) {
+      let whites = this.state.whites
+      let find = whites[Math.floor(Math.random() * whites.length)]
+      this.setState({ hand: [...this.state.hand, find]});
+      const index = whites.indexOf(find);
+      if (index > -1) {
+        whites.splice(index, 1);
+      }
+    }
+    // socket.emit('black card', { room: this.state.joinCode, card: this.state.currentBlack });
+    this.setState({
+      loading: false,
+    })
+    try {
+      const apiCall = await axios.post('https://gregapis.herokuapp.com/apples/newgame', {
+        joinCode: this.state.joinCode,
+        blacks: this.state.blacks,
+        whites: this.state.whites,
+        currentBlack: this.state.currentBlack,
+        selected: this.state.selected
       })
       await apiCall
     } catch (err) {
@@ -188,6 +304,7 @@ export default class App extends Component {
   }
 
   getHand = async () => {
+    if (this.state.selected === "Apples to Apples"){
     let reds = this.state.reds
     for (let step = 0; step < 7; step++) {
       let find = reds[Math.floor(Math.random() * reds.length)]
@@ -196,6 +313,16 @@ export default class App extends Component {
       if (index > -1) {
         reds.splice(index, 1);
       }
+    }} else if (this.state.selected === "Cards Against Humanity"){
+      let whites = this.state.whites
+    for (let step = 0; step < 8; step++) {
+      let find = whites[Math.floor(Math.random() * whites.length)]
+      this.setState({ hand: [...this.state.hand, find]});
+      const index = whites.indexOf(find);
+      if (index > -1) {
+        whites.splice(index, 1);
+      }
+    }
     }
     socket.emit('remove reds', { room: this.state.joinCode, hand: this.state.hand });
     this.setState({
@@ -205,28 +332,33 @@ export default class App extends Component {
 
   sendEvent = (event) => {
     try{
-      document.getElementById(`${event.currentTarget.id}`).remove();
-      // let hand = this.state.hand
-      // const index = hand.indexOf(event.currentTarget.id);
-      // if (index > -1) {
-      //   hand.splice(index, 1);
-      // }
+      // document.getElementById(`${event.currentTarget.id}`).remove();
+      let hand = this.state.hand
+      const index = hand.indexOf(event.currentTarget.id);
+      if (index > -1) {
+        hand.splice(index, 1);
+      }
       socket.emit('red card', { room: this.state.joinCode, card: event.currentTarget.id });
     this.getOneCard()
     } catch (e) {console.log(e)}
   }
 
-  selectWinner = () => {
-    console.log("Winner!")
-  }
-
   getOneCard = () => {
+    if(this.state.selected==="Apples to Apples"){
       let reds = this.state.reds
       let find = reds[Math.floor(Math.random() * reds.length)]
       this.setState({ hand: [...this.state.hand, find]});
       const index = reds.indexOf(find);
       if (index > -1) {
         reds.splice(index, 1);
+      }} else if (this.state.selected === "Cards Against Humanity") {
+        let whites = this.state.whites
+      let find = whites[Math.floor(Math.random() * whites.length)]
+      this.setState({ hand: [...this.state.hand, find]});
+      const index = whites.indexOf(find);
+      if (index > -1) {
+        whites.splice(index, 1);
+      }
       }
   }
 
@@ -236,24 +368,48 @@ export default class App extends Component {
     })
   }
 
-  entryMap = () => {
+  whiteMap = () => {
+    return this.state.hand.map((card, i) => {
+      return <Cardtwo key={i} card={card} selectHandler={this.sendEvent}/>
+    })
+  }
+
+  redEntries = () => {
     return this.state.entries.map((card, i) => {
       return <Card key={i} card={card} selectHandler={this.selectWinner}/>
     })
   }
 
+  whiteEntries = () => {
+    return this.state.entries.map((card, i) => {
+      return <Cardtwo key={i} card={card} selectHandler={this.selectWinner}/>
+    })
+  }
+
   renderBoard = () => {
-    if (this.state.judging === false){
+    if (this.state.selected==="Apples to Apples" && this.state.judging === false){
       return <div><div className="greenRow">
       <div className="greenCard"><p>{this.state.currentGreen}</p></div>
       </div>
       <div className="redRow">{this.redMap()}</div>
       </div>
-    } else {
+    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === false) {
+      return <div><div className="blackRow">
+      <div className="blackCard"><p>{this.state.currentBlack}</p></div>
+      </div>
+      <div className="whiteRow">{this.whiteMap()}</div>
+      </div>
+    } else if (this.state.selected==="Apples to Apples" && this.state.judging === true){
       return <div><div className="greenRow">
       <div className="greenCard"><p>{this.state.currentGreen}</p></div>
       </div>
-      <div className="redRow">{this.entryMap()}</div>
+      <div className="redRow">{this.redEntries()}</div>
+      </div>
+    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === true) {
+      return <div><div className="blackRow">
+      <div className="blackCard"><p>{this.state.currentBlack}</p></div>
+      </div>
+      <div className="whiteRow">{this.whiteEntries()}</div>
       </div>
     }
   }
@@ -261,17 +417,23 @@ export default class App extends Component {
   newGame = async () => {
     let name = this.state.name
     let joinCode = this.state.joinCode
+    let selected = this.state.selected
     if(name === "" || joinCode === ""){
       alert("Please fill out all fields")
     } else {
+      if(selected === "Apples to Apples"){
     this.getCards()
-    this.setState({
-      welcome: false,
-      loading: true,
-    })
-    await this.setState({})
-    this.welcome()
-  }}
+  } else if(selected === "Cards Against Humanity"){
+    this.getCards2()
+  }
+  this.setState({
+    welcome: false,
+    loading: true,
+    players: [this.state.name]
+  })
+  await this.setState({})
+  this.welcome()
+}}
 
   joinGame = async () => {
     let name = this.state.name
@@ -287,9 +449,13 @@ export default class App extends Component {
         greens: response.data.greens,
         reds: response.data.reds,
         currentGreen: response.data.currentGreen,
-        players: response.data.players,
+        whites: response.data.whites,
+        blacks: response.data.blacks,
+        currentBlack: response.data.currentBlack,
+        selected: response.data.selected,
         welcome: false,
         loading: true,
+        players: [this.state.name]
       })
       await this.setState({})
       this.welcome()
@@ -302,24 +468,36 @@ export default class App extends Component {
     }}
   }
 
+  doWhat = () => {
+    if (this.state.judging===false){
+      return "Pick a card"
+    } else { return "Choose a winner!"}
+  }
+
+  selectWinner = (event) => {
+    socket.emit('winner', { room: this.state.joinCode, winner: event.currentTarget.id});
+  }
+
   render() {
+    const { selectedOption } = this.state;
     return (
       <div className="App" id="app">
         <div className="header hide" id="header">
-          <h2>Apples to Apples</h2>
+          <h2>{this.state.selected}</h2>
         </div>
             <div id="board" className="hide">
               {this.renderBoard()}
+              <p className="dothis">{this.doWhat()}</p>
               </div>
             <div className="information hide" id="infobox">
             <h2>Info</h2>
             <p>Judge: {this.state.judge}</p>
-            <p>Scores: </p>
+            <p>Scores: {this.state.players}</p>
             </div>
             <div id="welcome">
           <div>
             <h1 className="welcomeHeader">Welcome</h1>
-            <form className="welcomeForm">
+            <form className="welcomeForm" autoComplete="off">
             <label htmlFor="username">Name:</label>
             <input id="username" type="text" value={this.state.name} onChange={(event)=>{
               this.setState({
@@ -332,6 +510,13 @@ export default class App extends Component {
                 joinCode: event.target.value
               })
             }}/>
+            <Select
+            value={selectedOption}
+            onChange={this.selector}
+            options={options}
+            className={"sortSelect"}
+            classNamePrefix={"sortSelect"}
+          />
               <div className="buttons">
               <input type="button" className="welcomeButton" onClick={this.newGame} value="New" id="New"/>
               <input type="button" className="welcomeButton" onClick={this.joinGame} value="Join" id="Join"/>
