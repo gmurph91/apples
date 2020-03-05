@@ -368,3 +368,7 @@ body {
     bottom: 0px;
     left: 33%;
 }
+
+.scoreList {
+  list-style: none;
+}

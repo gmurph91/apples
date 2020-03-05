@@ -29,10 +29,13 @@ export default class App extends Component {
         whites: [],
         currentBlack: "",
         hand: [],
-        judge: "Greg",
+        judge: "",
         judging: false,
         entries: [],
+        entered: false,
         players: [],
+        who: [],
+        scores:[0],
         welcome: true,
         selectedOption: { value: "Apples to Apples", label: "Apples to Apples" },
         selected: "Apples to Apples",
@@ -53,19 +56,42 @@ export default class App extends Component {
    });
     socket.on('join game',(user) =>{
       this.setState({ players: [...this.state.players, user.name] });
-      if(this.state.name === this.state.players[0]){
-      socket.emit('existing players', { room: this.state.joinCode, players: this.state.players });
-    }})
+      this.setState({ scores: [...this.state.scores, 0] });
+      socket.emit('existing players', { room: this.state.joinCode, players: this.state.players, judge:this.state.judge, scores:this.state.scores });
+      if(this.state.judge === ""){
+      this.selectJudge()
+    }
+  })
     socket.on('existing players',(players) =>{
       this.setState({
-        players: players.players
+        players: players.players,
+        judge: players.judge,
+        scores: players.scores
       })
     })
+    socket.on('judge',(judge) =>{
+      this.setState({
+        judge: judge.judge
+      })
+      if(this.state.judge === this.state.name){
+        this.setState({
+          judging:true
+        })
+      }
+    })
     socket.on('winner',(winner) =>{
-      console.log(winner.winner + " wins!")
+      let players = this.state.players
+      const index = players.indexOf(winner.winner);
+      let scores = [...this.state.scores];
+      let score = {...scores[index]};
+      score = scores[index]+1;
+      scores[index] = score;
+    this.setState({scores});
       this.setState({
         entries: [],
+        who: [],
         judging: false,
+        entered: false,
       })
     })
     socket.on('remove reds',(cards) =>{
@@ -90,16 +116,16 @@ export default class App extends Component {
           return hand
         })}
     })
-    // socket.on('green card',(card) =>{
-    //   console.log(card)
-    //   // this.setState({
-    //   //   currentGreen: card
-    //   // })
-    // })
+    socket.on('green card',(card) =>{
+      this.setState({
+        currentGreen: card.card,
+        currentBlack: card.card
+      })
+    })
     socket.on('red card',(card) =>{
       this.setState({ entries: [...this.state.entries, card.card] });
+      this.setState({ who: [...this.state.who, card.name] });
       if(this.state.entries.length === this.state.players.length-1){
-        console.log("time to judge!")
         this.setState({judging:true})
       }
     })
@@ -157,15 +183,48 @@ export default class App extends Component {
   welcome = () => {
     if (this.state.welcome === true) {
       document.getElementById("header").classList.add("hide2")
-      document.getElementById("board").classList.add("hide2")
-      document.getElementById("infobox").classList.add("hide2")
     } else {
-      document.getElementById("welcome").classList.add("hide2")
       document.getElementById("header").classList.remove("hide2")
-      document.getElementById("board").classList.remove("hide2")
-      document.getElementById("infobox").classList.remove("hide2")
     }
   }
+
+  selectJudge = () => {
+    for (let step = 0; step < 1; step++) {
+      let players = this.state.players
+      let find = players[Math.floor(Math.random() * players.length)]
+      this.setState({ judge: find });
+      socket.emit('judge', { room: this.state.joinCode, judge: this.state.judge });
+    }
+  }
+
+  newRound = async () => {
+    if(this.state.selected==="Apples to Apples"){
+    for (let step = 0; step < 1; step++) {
+      let greens = this.state.greens
+      let find = greens[Math.floor(Math.random() * greens.length)]
+      this.setState({ currentGreen: find });
+      const index = greens.indexOf(find);
+      if (index > -1) {
+        greens.splice(index, 1);
+      }
+    }
+    await this.setState({})
+    socket.emit('green card', { room: this.state.joinCode, card: this.state.currentGreen });
+    this.selectJudge()
+  } else if(this.state.selected==="Cards Against Humanity"){
+    for (let step = 0; step < 1; step++) {
+      let blacks = this.state.blacks
+      let find = blacks[Math.floor(Math.random() * blacks.length)]
+      this.setState({ currentBlack: find });
+      const index = blacks.indexOf(find);
+      if (index > -1) {
+        blacks.splice(index, 1);
+      }
+    }
+    await this.setState({})
+    socket.emit('green card', { room: this.state.joinCode, card: this.state.currentBlack });
+    this.selectJudge()
+  }}
 
   getCards = async () => {
     try {
@@ -237,7 +296,6 @@ export default class App extends Component {
         reds.splice(index, 1);
       }
     }
-    // socket.emit('green card', { room: this.state.joinCode, card: this.state.currentGreen });
     this.setState({
       loading: false,
     })
@@ -285,7 +343,6 @@ export default class App extends Component {
         whites.splice(index, 1);
       }
     }
-    // socket.emit('black card', { room: this.state.joinCode, card: this.state.currentBlack });
     this.setState({
       loading: false,
     })
@@ -332,14 +389,19 @@ export default class App extends Component {
 
   sendEvent = (event) => {
     try{
+      if(this.state.entered===false && this.state.judging===false){
       // document.getElementById(`${event.currentTarget.id}`).remove();
+      this.setState({
+        entered: true,
+      })
       let hand = this.state.hand
       const index = hand.indexOf(event.currentTarget.id);
       if (index > -1) {
         hand.splice(index, 1);
       }
-      socket.emit('red card', { room: this.state.joinCode, card: event.currentTarget.id });
-    this.getOneCard()
+      socket.emit('red card', { room: this.state.joinCode, card: event.currentTarget.id, name: this.state.name });
+      this.getOneCard()}
+      else {console.log("already entered")}
     } catch (e) {console.log(e)}
   }
 
@@ -386,26 +448,66 @@ export default class App extends Component {
     })
   }
 
+  playerMap = () => {
+    let scores = this.state.scores
+    return this.state.players.map((player, i) => {
+      return <li key={i} className="scoreList">{player}: {scores[i]}</li>
+    })
+  }
+
   renderBoard = () => {
-    if (this.state.selected==="Apples to Apples" && this.state.judging === false){
+    const { selectedOption } = this.state;
+    if(this.state.welcome===true){
+      return <div id="welcome">
+          <div>
+            <h1 className="welcomeHeader">Welcome</h1>
+            <form className="welcomeForm" autoComplete="off">
+            <label htmlFor="username">Name:</label>
+            <input id="username" type="text" value={this.state.name} onChange={(event)=>{
+              this.setState({
+                name: event.target.value
+              })
+            }}/>
+            <label htmlFor="joinCode">Join Code:</label>
+            <input id="joinCode" type="text" value={this.state.joinCode} onChange={(event)=>{
+              this.setState({
+                joinCode: event.target.value
+              })
+            }}/>
+            <Select
+            value={selectedOption}
+            onChange={this.selector}
+            options={options}
+            className={"sortSelect"}
+            classNamePrefix={"sortSelect"}
+          />
+              <div className="buttons">
+              <input type="button" className="welcomeButton" onClick={this.newGame} value="New" id="New"/>
+              <input type="button" className="welcomeButton" onClick={this.joinGame} value="Join" id="Join"/>
+              </div>
+            </form>
+            </div>
+        </div>
+    }
+    else if (this.state.selected==="Apples to Apples" && this.state.judging === false && this.state.welcome === false){
       return <div><div className="greenRow">
       <div className="greenCard"><p>{this.state.currentGreen}</p></div>
       </div>
       <div className="redRow">{this.redMap()}</div>
       </div>
-    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === false) {
+    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === false && this.state.welcome === false) {
       return <div><div className="blackRow">
       <div className="blackCard"><p>{this.state.currentBlack}</p></div>
       </div>
       <div className="whiteRow">{this.whiteMap()}</div>
       </div>
-    } else if (this.state.selected==="Apples to Apples" && this.state.judging === true){
+    } else if (this.state.selected==="Apples to Apples" && this.state.judging === true && this.state.welcome === false){
       return <div><div className="greenRow">
       <div className="greenCard"><p>{this.state.currentGreen}</p></div>
       </div>
       <div className="redRow">{this.redEntries()}</div>
       </div>
-    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === true) {
+    } else if(this.state.selected==="Cards Against Humanity" && this.state.judging === true && this.state.welcome === false) {
       return <div><div className="blackRow">
       <div className="blackCard"><p>{this.state.currentBlack}</p></div>
       </div>
@@ -469,61 +571,38 @@ export default class App extends Component {
   }
 
   doWhat = () => {
-    if (this.state.judging===false){
+    if (this.state.judging===false && this.state.name!==this.state.judge){
       return "Pick a card"
-    } else { return "Choose a winner!"}
+    } else if (this.state.judging===true && this.state.name!==this.state.judge){ return `${this.state.judge} is choosing a winner!`}
+    else if (this.state.judging===true && this.state.name===this.state.judge){ return `Choose the winner!`}
   }
 
   selectWinner = (event) => {
-    socket.emit('winner', { room: this.state.joinCode, winner: event.currentTarget.id});
+    if(this.state.name===this.state.judge){
+      let entries = this.state.entries
+      let who = this.state.who
+      const index = entries.indexOf(event.currentTarget.id);
+    socket.emit('winner', { room: this.state.joinCode, winner: who[index]});
+    this.newRound()
+    } else {console.log("you are not the judge")}
   }
 
   render() {
-    const { selectedOption } = this.state;
     return (
       <div className="App" id="app">
         <div className="header hide" id="header">
           <h2>{this.state.selected}</h2>
         </div>
-            <div id="board" className="hide">
+            <div id="board">
               {this.renderBoard()}
               <p className="dothis">{this.doWhat()}</p>
               </div>
-            <div className="information hide" id="infobox">
+            <div className="information" id="infobox">
             <h2>Info</h2>
             <p>Judge: {this.state.judge}</p>
-            <p>Scores: {this.state.players}</p>
+            <p>Scores: {this.playerMap()}</p>
             </div>
-            <div id="welcome">
-          <div>
-            <h1 className="welcomeHeader">Welcome</h1>
-            <form className="welcomeForm" autoComplete="off">
-            <label htmlFor="username">Name:</label>
-            <input id="username" type="text" value={this.state.name} onChange={(event)=>{
-              this.setState({
-                name: event.target.value
-              })
-            }}/>
-            <label htmlFor="joinCode">Join Code:</label>
-            <input id="joinCode" type="text" value={this.state.joinCode} onChange={(event)=>{
-              this.setState({
-                joinCode: event.target.value
-              })
-            }}/>
-            <Select
-            value={selectedOption}
-            onChange={this.selector}
-            options={options}
-            className={"sortSelect"}
-            classNamePrefix={"sortSelect"}
-          />
-              <div className="buttons">
-              <input type="button" className="welcomeButton" onClick={this.newGame} value="New" id="New"/>
-              <input type="button" className="welcomeButton" onClick={this.joinGame} value="Join" id="Join"/>
-              </div>
-            </form>
-            </div>
-        </div>
+            
         <img id="loadingIcon" src="loading.gif" alt="loading" />
         </div>
         
